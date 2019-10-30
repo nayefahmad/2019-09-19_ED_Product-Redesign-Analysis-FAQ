@@ -1,0 +1,33 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1572385712753.000,
+    "dirty" : false,
+    "encoding" : "",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "79A7D02",
+    "lastKnownWriteTime" : 2353469171040,
+    "last_content_update" : 1572385712753,
+    "path" : null,
+    "project_path" : null,
+    "properties" : {
+        "cacheKey" : "BEFF7787",
+        "caption" : "df2.census",
+        "contentUrl" : "grid_resource/gridviewer.html?env=&obj=df2.census&cache_key=BEFF7787",
+        "displayedObservations" : 86043,
+        "environment" : "",
+        "expression" : "df2.census",
+        "object" : "df2.census",
+        "preview" : 0,
+        "totalObservations" : 86043,
+        "variables" : 9
+    },
+    "read_only" : false,
+    "read_only_alternatives" : [
+    ],
+    "relative_order" : 2,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_dataframe"
+}

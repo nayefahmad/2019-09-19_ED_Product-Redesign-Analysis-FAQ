@@ -1,0 +1,33 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1572387494077.000,
+    "dirty" : false,
+    "encoding" : "",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "CFA28E5E",
+    "lastKnownWriteTime" : 25896178900992114,
+    "last_content_update" : 1572387494077,
+    "path" : null,
+    "project_path" : null,
+    "properties" : {
+        "cacheKey" : "B96518C0",
+        "caption" : "df3.hols",
+        "contentUrl" : "grid_resource/gridviewer.html?env=&obj=df3.hols&cache_key=B96518C0",
+        "displayedObservations" : 336,
+        "environment" : "",
+        "expression" : "df3.hols",
+        "object" : "df3.hols",
+        "preview" : 0,
+        "totalObservations" : 336,
+        "variables" : 4
+    },
+    "read_only" : false,
+    "read_only_alternatives" : [
+    ],
+    "relative_order" : 3,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_dataframe"
+}

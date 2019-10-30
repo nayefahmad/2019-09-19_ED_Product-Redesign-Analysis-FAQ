@@ -1,0 +1,330 @@
+---
+output:
+  pdf_document: default
+header-includes:
+- \usepackage{xcolor}
+- \definecolor{forestgreen}{rgb}{0.13, 0.55, 0.13}
+- \definecolor{crimson}{rgb}{0.79, 0.0, 0.09}
+params:
+  ds_connectionName:
+    input: text
+    label: Please enter the Decision Support warehouse ODBC connection name.
+    value: AISAKE-DSSI
+  ee_connectionName:
+    input: text
+    label: Please enter the Employee Engagement server ODBC connection name.
+    value: AISAKE-EERPT
+  summaryFlag:
+    choices:
+    - Highlights
+    - All Details
+    label: What would you like to see in the report?
+    value: Highlights
+  refresh:
+    choices:
+    - Yes.
+    - No.
+    label: Would you like to update the indciators? (This will take several minutes)
+    value: Yes.
+  reportType:
+    choices:
+    - Convenient Healthcare
+    - Exceptional Care
+    - Healthy VCH
+    - None
+    - Richmond
+    - All
+    label: Which indicators would you like to see?
+    value: All
+  histW:
+    input: slider
+    label: How many recent weeks do you want considered for the summary?
+    value: 4
+    step: 1
+    min: 1
+    max: 53
+    round: TRUE
+  histFP:
+      input: slider
+      label: How many fiscal periods do you want considered for the summary?
+      value: 1
+      step: 1
+      min: 1
+      max: 13
+      round: TRUE
+  histM:
+    input: slider
+    label: How many months do you want considered for the summary?
+    value: 1
+    step: 1
+    min: 1
+    max: 12
+    round: TRUE
+  histCQ:
+    input: slider
+    label: How many quarters do you want considered for the summary?
+    value: 1
+    step: 1
+    min: 1
+    max: 4
+    round: TRUE
+  
+classoption: landscape
+---
+---
+title: "Richmond Visibility Wall"
+subtitle: "`r paste0(params$reportType, params$summaryFlag,sep=' ')`"
+author: Decision Support
+date: "`r format(Sys.time(), '%Y-%B-%d')`"
+fontsize: 14pt
+---
+
+```{r setup, include=FALSE}
+#Written by Hans Aisake; FALL 2018 and DECEMBER 2019
+
+#load source files; see generate visibility wall reports vX for troubleshooting.
+source("./SourceFiles/sourceHeader_v4.R", local = TRUE)
+loadPack() 
+
+# Put Some Parameters into global variabiles ####
+
+#put parameters into global variables; passing the values through functions is overly cumbersome or impossible
+histParaTable <<-data.frame( timeFrameType = c("Weekly","Fiscal Period", "Monthly","CalendarQuarter")
+                             , histCut = c(params$histW, params$histFP, params$histM, params$histCQ))
+
+#needed to change the output file name
+rpName <<- paste0(params$reportType," ",params$summaryFlag," ", format(Sys.time(), '%Y-%B-%d'),".pdf",sep="")
+
+#shortversion specification; global parameters
+shortVersion <<-params$summaryFlag=="Highlights"
+
+#update indicators if selected by the user
+updateIndicators(params)
+   
+```
+
+```{r MainBody, echo=FALSE, warnings=FALSE}
+#load data from the DS data warehouse
+  #set the file path to the Report Queries folder; indTableQueryFN from Generate Vis..... v2.R
+  fn <- paste0("./Report Queries/",indTableQueryFN,sep="") 
+  data <- loadIndicatorData(params$ds_connectionName, fn) #load indicator table data
+
+# feature turned off for now; it needs better design  
+# load in investiaged patterns data from the DS data warehouse  
+#  iP <<- getInvestigatedPatterns(params$ds_connectionName,investigatedPatternsFileName)
+
+#generate the charts and get special cause messages
+  #pboptions(type="win", title="Building SPC Charts") # set a progress bar to track progress
+  #suppressWarnings(list_Charts_MSGs <- pblapply(data,FUN=main) )
+  suppressWarnings(list_Charts_MSGs <- lapply(data,FUN=main) )
+  categories <- sapply(list_Charts_MSGs,"[[","MYVCHCategory")
+  names(categories) <- NULL
+
+```
+\pagebreak
+
+# All Highlights - `r format(Sys.time(), '%Y-%B-%d')`
+Only the most recent indicators with celebratory or troubling news are listed here. All other indicators are displaying standard performance. Most recent is defined as `r params$histCQ ` quarters, `r params$histFP ` fiscal periods, `r params$histM ` months, or `r params$histW ` weeks depending on the indicator frequency.
+\newline
+
+```{r SummaryPageAll, echo=FALSE, warnings=FALSE, message=FALSE, results='asis'}
+#generate summary page; all
+  genSummaryPage(list_Charts_MSGs)
+
+```
+\pagebreak
+
+# Convenient Healthcare Highlights  - `r format(Sys.time(), '%Y-%B-%d')`
+Only the most recent indicators with celebratory or troubling news are listed here. All other indicators are displaying standard performance. Most recent is defined as `r params$histCQ ` quarters, `r params$histFP ` fiscal periods, `r params$histM ` months, or `r params$histW ` weeks depending on the indicator frequency.
+\newline
+
+```{r SummaryPageC, echo=FALSE, warnings=FALSE, message=FALSE, results='asis'}
+#generate summary page; Convenient Healthcare
+  
+  genSummaryPage(list_Charts_MSGs[categories=="Convenient Healthcare"])
+
+```
+\pagebreak
+
+# Exceptional Care Highlights  - `r format(Sys.time(), '%Y-%B-%d')`
+Only the most recent indicators with celebratory or troubling news are listed here. All other indicators are displaying standard performance. Most recent is defined as `r params$histCQ ` quarters, `r params$histFP ` fiscal periods, `r params$histM ` months, or `r params$histW ` weeks depending on the indicator frequency.
+\newline
+
+```{r SummaryPageE, echo=FALSE, warnings=FALSE, message=FALSE, results='asis'}
+#generate summary page; Exceptional Care
+  
+  genSummaryPage(list_Charts_MSGs[categories=="Exceptional Care"])
+
+```
+\pagebreak
+
+# Healthy VCH Highlights  - `r format(Sys.time(), '%Y-%B-%d')`
+Only the most recent indicators with celebratory or troubling news are listed here. All other indicators are displaying standard performance. Most recent is defined as `r params$histCQ ` quarters, `r params$histFP ` fiscal periods, `r params$histM ` months, or `r params$histW ` weeks depending on the indicator frequency.
+\newline
+
+```{r SummaryPageH, echo=FALSE, warnings=FALSE, message=FALSE, results='asis'}
+#generate summary page; Healthy VCH
+  
+  genSummaryPage(list_Charts_MSGs[categories=="Healthy VCH"])
+
+```
+\pagebreak
+
+# Richmond Highlights  - `r format(Sys.time(), '%Y-%B-%d')`
+Only the most recent indicators with celebratory or troubling news are listed here. All other indicators are displaying standard performance. Most recent is defined as `r params$histCQ ` quarters, `r params$histFP ` fiscal periods, `r params$histM ` months, or `r params$histW ` weeks depending on the indicator frequency.
+\newline
+
+```{r SummaryPageR, echo=FALSE, warnings=FALSE, message=FALSE, results='asis'}
+#generate summary page; Convenient Healthcare
+  
+  genSummaryPage(list_Charts_MSGs[categories=="Richmond"])
+
+```
+\pagebreak
+
+# Unmapped Indicator Highlights  - `r format(Sys.time(), '%Y-%B-%d')`
+Only the most recent indicators with celebratory or troubling news are listed here. All other indicators are displaying standard performance. Most recent is defined as `r params$histCQ ` quarters, `r params$histFP ` fiscal periods, `r params$histM ` months, or `r params$histW ` weeks depending on the indicator frequency.
+\newline
+
+```{r SummaryPageUM, echo=FALSE, warnings=FALSE, message=FALSE, results='asis'}
+#generate summary page; Convenient Healthcare
+  
+  genSummaryPage(list_Charts_MSGs[categories=="None"])
+
+```
+\pagebreak
+
+```{r PlotSPCCharts, echo=FALSE, warnings=FALSE, results='asis', message=FALSE, fig.width=10.5, fig.height=6.5}
+
+ invisible(lapply(list_Charts_MSGs, FUN=plotWithMSG, shortVersion))
+
+```
+\pagebreak
+```{r NonSPCCharts, echo=FALSE, warnings=FALSE, message=FALSE, results='asis', fig.width=10.5, fig.height=7}
+
+#plot non spc charts
+  printNonSPCCharts(reportType=params$reportType,ds_connectionName = params$ds_connectionName)
+
+```
+\pagebreak
+
+## Appendix A1 - Access and Flow Metric List
+This is a list of the indicators contained in this report.
+The type of SPC chart created for each indicator is noted in bracket.
+
+- % of ED Patients Admitted to Hospital within 10 Hours (P Chart)
+- Short Stay Discharges [LOS<=48hrs] (P Chart)
+- ALC Rate Based on Discharges (I Chart)
+- Average ALC Census (I Chart)
+- Days >30 for Discharged Patients (I Chart)
+- Current Inpatient LLOS days (I Chart)
+- % of Face-to-Face Nursing Visits that were Ambulatory (P Chart)
+- \# Placements within Target(30days) from VCH Acute (P Chart)
+- \# Placements within Target (30days) from RH Community (P Chart)
+- % Surgical Patients Treated Within Target Wait Time (P Chart)
+- \# Direct Discharges from ED  (I Chart)
+- Inpatient Census (I Chart)
+- Total ALC days for RC (AL0,AL10) (I Chart)
+
+## Appendix A2 - Quality and Patient Safety Metric List
+This is a list of the indicators contained in this report.
+The type of SPC chart created for each indicator is noted in bracket.
+
+- UTI + Pneumonia CASE rate per 1,000 patient days (U Chart)
+- Total # of Falls (C Chart)
+- Falls Resulting in Harm (C Chart)
+- Falls with No Harm (C chart)
+- MRSA rate per 10,000 Patient Days (U Chart)
+- CDI rate per 10,000 Patient Days (U Chart)
+- CPO rate per 10,000 Patient Days (U Chart)
+- \% of Hand Hygiene Compliance (P Chart)
+
+## Appendix A3 - Engagement Metric List
+This is a list of the indicators contained in this report.
+The type of SPC chart created for each indicator is noted in bracket.
+
+- Turnover Rate (P Chart)
+- Overtime Ratio (P Chart)
+- Sick Ratio (P Chart)
+- Percentage of Open Postings (P Chart)
+
+\pagebreak
+
+## Appendix B - Control Chart Special Cause Rules (Nelson Rules)
+These are rules that check for Outliers, Trends, Shifts, Cycles, and changes in stability. This is what drives the colouring of the points in the charts. We chose to use the Nelson rules as they are akin to best practice at this time. *We have used 3/3 and 5/5 for rules 5 and 6*.
+
+- Rule 1: 1 point is more than 3 standard deviations from the mean.(Outliers)
+- Rule 2: 9+ points in a row are on the same side of the mean. (Shift)
+- Rule 3: 6+ points in a row are continually increasing (or decreasing). (Trends)
+- Rule 4: 14+ points in a row alternate in direction, increasing then decreasing (Cycles)
+- Rule 5: 2+ out of 3 consecutive points are more than 2 standard deviations from the mean in the same direction (Shift)
+- Rule 6: 4+ out of 5 consecutive points are more than 1 standard deviation from the mean in the same direction (Shift)
+- Rule 7: 15+ points in a row are all within 1 standard deviation of the mean on either side of the mean (Increased Stability) 
+- Rule 8: 8+ consecutive points with none within 1 standard deviation of the mean and the points are in both directions from the mean (Decreased Stability)
+
+Rules 7 and 8 are require proper tuning. Their goal is to identify when we have consistent performance around the center line. If there has been a shift, but we haven't recalibrated they will give confusing bad messages.
+
+```{r AppendixLog, echo=FALSE, warnings=FALSE, include=FALSE}
+
+#set the log file name
+logFileName <- paste0(wd,"/SPC Logs/", params$reportType, "/Historical Special Causes ",format(Sys.time(), "%Y-%B-%d"),".csv")
+
+#extract the appendix messages and combine them into a data table
+z <-genAppendixLog(list_Charts_MSGs)
+
+if( is.not.null(z)){
+  write.csv(x=z,file=logFileName) #save the log file as a csv
+}
+
+
+```
+
+\pagebreak
+
+## Appendix C - Historical Special Cause Notifications
+Full historical special cause notifications can be found in '`r logFileName`'.
+
+## Appendix D - Technical Details
+
+#### Metrics where people can move between programs.
+For some metrics people can move between programs, which triggers special cause detection. Current inpatient Days >30 is one example. There is a large spike in Home & Community Care in 2017/18 because a LLOS patient went from Medicine to Paliative Care. When programs have large volumes like Medicine this doesn't matter so much, but for smaller programs like Paliative Care it causes large distortions. Don't take programs with small volumes too seriously for these types of metrics.
+
+#### We did compute the type 1 error rate of the report
+
+Please contact Decision Support for the technical details if you desire them.
+
+```{r extra, echo=FALSE, include=FALSE}
+
+#\newpage
+
+# ## References
+# 
+# Below are some articles that were useful in the construction of this report. Several health care specific applications of SPC charts are illustrated through them. We've taken ideas from all of them and added some adapatations of our own.
+# 
+# National Health Institute (ND). A Guide to creating and interpreting run and control charts: Turning Date into Information for Improvement. https://www.qualitasconsortium.com/index.cfm/reference-material/fundamentals/a-guide-to-creating-interpreting-run-control-charts/
+# 
+# Jacob Anhoej, Anne Vingaard Olesen (2014). Run Charts Revisited: A Simulation Study of Run Chart Rules for Detection of Non-Random Variation in Health Care Processes. PLoS ONE 9(11): e113825. doi: 10.1371/journal.pone.0113825 .
+# 
+# Jacob Anhoej (2015). Diagnostic Value of Run Chart Analysis: Using Likelihood Ratios to Compare Run Chart Rules on Simulated Data Series. PLoS ONE 10(3): e0121349. doi: 10.1371/journal.pone.0121349
+# 
+# Mark F. Schilling (2012). The Surprising Predictability of Long Runs. Math. Mag. 85, 141-149.
+# 
+# Zhenmin Chen (2010). A note on the runs test. Model Assisted Statistics and Applications 5, 73-77.
+# 
+# Douglas C. Montgomery (2009). Introduction to Statistical Process Control, Sixth Edition, John Wiley & Sons.
+# 
+# James C. Benneyan (2001). Number-Between g-Type Statistical Quality Control Charts for Monitoring Adverse Events. Health Care Management Science 4, 305-318.
+# 
+# Lloyd P. Provost, Sandra K. Murray (2011). The Health Care Data Guide: Learning from Data for Improvement. San Francisco: John Wiley & Sons Inc.
+# 
+# David B. Laney (2002). Improved control charts for attributes. Quality Engineering, 14(4), 531-537.
+# 
+# Emilio L. Cano, Javier M. Moguerza, Mariano Prieto Corcoba (2015). Quality control with R: An ISO Standards Approach.
+# 
+# Zeynep Karakus, Aysun Taseli, James C. Benneyan (2012). Relative Performance of Shewart, EWMA p and g Statistical Control Charts for Monitoring Adverse Healthcare Event Rates. Industrial and systems Engineering Research Conference 2012).
+# 
+# James C. Benneyan (2001). Number-between g-Type Statistical Quality Control charts for Monitoring Adverse Events. Health care Management Science 4(4).
+# 
+# Midas & Statit Solutions Group (2012). sample Size Considerations for P-Charts. http://www.statit.com/support/quality_practice_tips/sample_size_considerations_for_p.shtml
+
+
