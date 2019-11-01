@@ -219,18 +219,11 @@ p <- df2.census %>%
 # Models ----------
 # > Train/test split -------------
 train_start <- df2.census$date %>% min
+
 test_end <- df2.census$date %>% max
+test_start <- test_end - 30 
 
-num_days <- difftime(test_end, train_start, units = "days") %>% as.numeric()
-
-# 80% training data 
-train_length <- (.80 * num_days) %>% round()
-train_end <- train_start + train_length
-
-# 20% test data 
-# validation_length <- (.90 * num_days) %>% round()
-test_start <- train_end + 1 
-# validation_end <- train_start + validation_length
+train_end <- test_start - 1 
 
 horizon_param <- 24*7*2  # unit: hours 
 
@@ -292,7 +285,7 @@ fcast %>%
 # Cross val: 
 df7.1_metrics_m1 <- 
   cross_validation(m1, 
-                   period = 1000, 
+                   period = 1200, 
                    horizon = horizon_param, 
                    units = "hours") %>% 
   performance_metrics()
@@ -340,12 +333,60 @@ fcast %>%
 # Cross val: 
 df7.2_metrics_m2 <- 
   cross_validation(m2, 
-                   period = 1000, 
+                   period = 1200, 
                    horizon = horizon_param, 
                    units = "hours") %>% 
   performance_metrics()
 
 df7.2_metrics_m2 %>% 
+  datatable(extensions = 'Buttons',
+            options = list(dom = 'Bfrtip', 
+                           buttons = c('excel', "csv")))
+
+
+
+#' ## Prophet model 3
+#' 
+# > Prophet model 3  ---------
+# fit prophet model:  
+m3 <- prophet(df4.train,
+              changepoint.prior.scale = 0.05, # default is 0.05; Increasing it will make the trend more flexible:
+              changepoint.range = 0.90, 
+              yearly.seasonality = 5)  # default is 10; add Fourier terms for more flexibility in fitting yearly seasonality  
+
+# future df: 
+future <- make_future_dataframe(m3,
+                                periods = horizon_param,
+                                freq = "hour")
+
+
+# Fcast:  
+fcast <- predict(m3, future)
+
+# Examine the fitted model and fcast
+plot(m3, fcast) + 
+  add_changepoints_to_plot(m3)
+
+prophet_plot_components(m3, fcast)
+prophet:::plot_yearly(m3)
+
+
+# fcast df: 
+fcast %>%
+  head %>% 
+  datatable(extensions = 'Buttons',
+            options = list(dom = 'Bfrtip',
+                           buttons = c('excel', "csv")))
+
+# Cross val: 
+df7.3_metrics_m3 <- 
+  cross_validation(m3, 
+                   period = 1200, 
+                   horizon = horizon_param, 
+                   units = "hours") %>% 
+  performance_metrics()
+
+df7.3_metrics_m3 %>% 
   datatable(extensions = 'Buttons',
             options = list(dom = 'Bfrtip', 
                            buttons = c('excel', "csv")))
@@ -364,15 +405,16 @@ df7.2_metrics_m2 %>%
 
 
 
-
                            
 #' ## Model selection 
-#' 
+# Model selection -----
 
 
 
-#' ## Test set accuracy 
-#' 
+#' ## Test set accuracy
+#'
+#' If we haven't overfitted, test set accuracy should be pretty close to
+#' cross-validated train set accuracy.
 
 
 # df6.test_accuracy <- 
