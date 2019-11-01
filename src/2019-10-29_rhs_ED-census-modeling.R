@@ -132,10 +132,14 @@ df3.hols <-
   distinct() %>% 
   arrange(ds)
 
-df3.hols %>% 
-  datatable(extensions = 'Buttons',
-            options = list(dom = 'Bfrtip', 
-                           buttons = c('excel', "csv")))
+# df3.hols %>% write.table(file = "clipboard", sep = "\t", row.names = FALSE)
+
+
+
+# df3.hols %>% 
+#   datatable(extensions = 'Buttons',
+#             options = list(dom = 'Bfrtip', 
+#                            buttons = c('excel', "csv")))
                            
 
 
@@ -214,29 +218,39 @@ p <- df2.census %>%
 #' 
 # Models ----------
 # > Train/test split -------------
-max_date <- df2.census$date %>% max
-min_date <- df2.census$date %>% min
-num_days <- difftime(max_date, min_date, units = "days") %>% as.numeric()
+train_start <- df2.census$date %>% min
+test_end <- df2.census$date %>% max
 
-train_end <- (.80 * num_days) %>% round()
-horizon_param <- (num_days - train_end) * 24  # unit: hours 
+num_days <- difftime(test_end, train_start, units = "days") %>% as.numeric()
 
-#' We take train data from `r min_date` to `r min_date + train_end`. 
+# 80% training data 
+train_length <- (.80 * num_days) %>% round()
+train_end <- train_start + train_length
+
+# 20% test data 
+# validation_length <- (.90 * num_days) %>% round()
+test_start <- train_end + 1 
+# validation_end <- train_start + validation_length
+
+horizon_param <- 24*7*6  # unit: hours 
+
+#' **We take train data from `r train_start` to `r train_end`.** 
 #' 
-#' Test data is from `r min_date + train_end + 1` to `r max_date`
+#' **Test data is from `r test_start` to `r test_end`**
+#' 
 
 
 df4.train <-
   df2.census %>%
   select(ds = short_dt,
          y = ed_census) %>% 
-  filter(ds <= min_date + train_end)
+  filter(ds <= train_end)
 
 df5.test <- 
   df2.census %>%
   select(ds = short_dt,
          y = ed_census) %>% 
-  filter(ds > min_date + train_end) %>% 
+  filter(ds >= test_start) %>% 
   mutate(date = date(ds), 
          hour = hour(ds)) %>% 
   arrange(ds)
@@ -249,7 +263,7 @@ df5.test <-
 # > Prophet model 1  ---------
 # fit prophet model:  
 m1 <- prophet(df4.train,
-              changepoint.prior.scale = 0.005) # decrease trend flexibility; default is 0.05
+              changepoint.prior.scale = 0.05) # default is 0.05; Increasing it will make the trend more flexible:
 
 # future df: 
 future <- make_future_dataframe(m1,
@@ -269,10 +283,27 @@ prophet:::plot_yearly(m1)
 
 
 # fcast df: 
-# fcast %>% 
-#   datatable(extensions = 'Buttons',
-#             options = list(dom = 'Bfrtip', 
-#                            buttons = c('excel', "csv")))
+fcast %>%
+  head %>% 
+  datatable(extensions = 'Buttons',
+            options = list(dom = 'Bfrtip',
+                           buttons = c('excel', "csv")))
+
+# Cross val: 
+df7.1_metrics_m1 <- 
+  cross_validation(m1, 
+                   period = 1000, 
+                   horizon = horizon_param, 
+                   units = "hours") %>% 
+  performance_metrics()
+
+df7.1_metrics_m1 %>% 
+  datatable(extensions = 'Buttons',
+            options = list(dom = 'Bfrtip', 
+                           buttons = c('excel', "csv")))
+
+#' Note that CI coverage is quite poor - below 70%
+#'                            
                            
 #' ## Model selection 
 #' 
