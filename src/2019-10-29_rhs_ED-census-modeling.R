@@ -232,7 +232,7 @@ train_end <- train_start + train_length
 test_start <- train_end + 1 
 # validation_end <- train_start + validation_length
 
-horizon_param <- 24*7*6  # unit: hours 
+horizon_param <- 24*7*2  # unit: hours 
 
 #' **We take train data from `r train_start` to `r train_end`.** 
 #' 
@@ -304,6 +304,67 @@ df7.1_metrics_m1 %>%
 
 #' Note that CI coverage is quite poor - below 70%
 #'                            
+
+
+#' ## Prophet model 2
+#' 
+# > Prophet model 2  ---------
+# fit prophet model:  
+m2 <- prophet(df4.train,
+              changepoint.prior.scale = 0.01) # default is 0.05; Increasing it will make the trend more flexible:
+
+# future df: 
+future <- make_future_dataframe(m2,
+                                periods = horizon_param,
+                                freq = "hour")
+
+
+# Fcast:  
+fcast <- predict(m2, future)
+
+# Examine the fitted model and fcast
+plot(m2, fcast) + 
+  add_changepoints_to_plot(m2)
+
+prophet_plot_components(m2, fcast)
+prophet:::plot_yearly(m2)
+
+
+# fcast df: 
+fcast %>%
+  head %>% 
+  datatable(extensions = 'Buttons',
+            options = list(dom = 'Bfrtip',
+                           buttons = c('excel', "csv")))
+
+# Cross val: 
+df7.2_metrics_m2 <- 
+  cross_validation(m2, 
+                   period = 1000, 
+                   horizon = horizon_param, 
+                   units = "hours") %>% 
+  performance_metrics()
+
+df7.2_metrics_m2 %>% 
+  datatable(extensions = 'Buttons',
+            options = list(dom = 'Bfrtip', 
+                           buttons = c('excel', "csv")))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
                            
 #' ## Model selection 
 #' 
@@ -314,39 +375,39 @@ df7.1_metrics_m1 %>%
 #' 
 
 
-df6.test_accuracy <- 
-  fcast %>% 
-  select(ds, 
-         yhat, 
-         yhat_lower, 
-         yhat_upper) %>% 
-  mutate(date = date(ds), 
-         hour = hour(ds)) %>% 
-  filter(date >= min_date + train_end & hour > 0) %>% 
-  
-  left_join(df5.test, 
-            by = c("date" = "date", 
-                   "hour" = "hour")) %>% 
-  mutate(error = y - yhat)
-  
-str(df6.test_accuracy)
-summary(df6.test_accuracy$error)
-
-df6.test_accuracy %>% 
-  filter(date < "2019-04-15") %>%
-  ggplot(aes(x = ds.x, 
-             y = yhat)) + 
-  geom_ribbon(aes(x = ds.x, 
-                  ymin = yhat_lower,
-                  ymax = yhat_upper), 
-              fill = "grey80",
-              alpha = 0.5) + 
-  geom_line() + 
-  geom_point() + 
-  
-  geom_line(aes(x = ds.x, 
-                y = y), 
-            col = "skyblue")
+# df6.test_accuracy <- 
+#   fcast %>% 
+#   select(ds, 
+#          yhat, 
+#          yhat_lower, 
+#          yhat_upper) %>% 
+#   mutate(date = date(ds), 
+#          hour = hour(ds)) %>% 
+#   filter(date >= min_date + train_end & hour > 0) %>% 
+#   
+#   left_join(df5.test, 
+#             by = c("date" = "date", 
+#                    "hour" = "hour")) %>% 
+#   mutate(error = y - yhat)
+#   
+# str(df6.test_accuracy)
+# summary(df6.test_accuracy$error)
+# 
+# df6.test_accuracy %>% 
+#   filter(date < "2019-04-15") %>%
+#   ggplot(aes(x = ds.x, 
+#              y = yhat)) + 
+#   geom_ribbon(aes(x = ds.x, 
+#                   ymin = yhat_lower,
+#                   ymax = yhat_upper), 
+#               fill = "grey80",
+#               alpha = 0.5) + 
+#   geom_line() + 
+#   geom_point() + 
+#   
+#   geom_line(aes(x = ds.x, 
+#                 y = y), 
+#             col = "skyblue")
   
   
 
