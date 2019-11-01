@@ -122,10 +122,10 @@ df2.census %>%
 df3.hols <- 
   df2.census %>% 
   filter(hol == 1) %>% 
-  mutate(hol_name = NA, 
+  mutate(holiday = NA, 
          lower_window = 0, 
          upper_window = 0) %>% # include 0 days before and after the hol
-  select(hol_name, 
+  select(holiday, 
          ds = date, 
          lower_window, 
          upper_window) %>% # %>% View
@@ -180,6 +180,15 @@ p <- df2.census %>%
                                    hjust = 1)); ggplotly(p)
 
 p <- df2.census %>% 
+  ggplot(aes(x = hour, 
+             y = ed_census, 
+             label = date)) + 
+  geom_boxplot() + 
+  facet_wrap(~year) + 
+  theme(axis.text.x = element_text(angle = 45, 
+                                   hjust = 1)); ggplotly(p)
+
+p <- df2.census %>% 
   ggplot(aes(x = hol, 
              y = ed_census, 
              label = date)) + 
@@ -197,27 +206,116 @@ p <- df2.census %>%
 
 
 
-#' # Time series analysis 
-#' 
-#' ## Parameters 
-#' 
-# Time series analysis ----------
-horizon_param <- 30 
 
-# df3.census_for_prophet <- 
-#   df2.census %>% 
-#   select(ds = date,
-#          y = ed_census)
-# 
-# # future df: 
-# future <- make_future_dataframe(m, 
-#                                 periods = horizon_param,
-#                                 freq = "day")  
-# 
-# # fit prophet model:  
-# m <- prophet(df3.census_for_prophet)
-# 
-# fcast <- predict(m, future)
+#+ models 
+#' # Models 
+#' 
+#' ## Parameters and data splitting  
+#' 
+# Models ----------
+# > Train/test split -------------
+max_date <- df2.census$date %>% max
+min_date <- df2.census$date %>% min
+num_days <- difftime(max_date, min_date, units = "days") %>% as.numeric()
 
-# plot(m, fcast)
+train_end <- (.80 * num_days) %>% round()
+horizon_param <- (num_days - train_end) * 24  # unit: hours 
+
+#' We take train data from `r min_date` to `r min_date + train_end`. 
+#' 
+#' Test data is from `r min_date + train_end + 1` to `r max_date`
+
+
+df4.train <-
+  df2.census %>%
+  select(ds = short_dt,
+         y = ed_census) %>% 
+  filter(ds <= min_date + train_end)
+
+df5.test <- 
+  df2.census %>%
+  select(ds = short_dt,
+         y = ed_census) %>% 
+  filter(ds > min_date + train_end) %>% 
+  mutate(date = date(ds), 
+         hour = hour(ds)) %>% 
+  arrange(ds)
+
+
+
+#' ## Prophet model 1 
+#' 
+
+# > Prophet model 1  ---------
+# fit prophet model:  
+m1 <- prophet(df4.train,
+              changepoint.prior.scale = 0.005) # decrease trend flexibility; default is 0.05
+
+# future df: 
+future <- make_future_dataframe(m1,
+                                periods = horizon_param,
+                                freq = "hour")
+
+
+# Fcast:  
+fcast <- predict(m1, future)
+
+# Examine the fitted model and fcast
+plot(m1, fcast) + 
+  add_changepoints_to_plot(m1)
+
+prophet_plot_components(m1, fcast)
+prophet:::plot_yearly(m1)
+
+
+# fcast df: 
+# fcast %>% 
+#   datatable(extensions = 'Buttons',
+#             options = list(dom = 'Bfrtip', 
+#                            buttons = c('excel', "csv")))
+                           
+#' ## Model selection 
+#' 
+
+
+
+#' ## Test set accuracy 
+#' 
+
+
+df6.test_accuracy <- 
+  fcast %>% 
+  select(ds, 
+         yhat, 
+         yhat_lower, 
+         yhat_upper) %>% 
+  mutate(date = date(ds), 
+         hour = hour(ds)) %>% 
+  filter(date >= min_date + train_end & hour > 0) %>% 
+  
+  left_join(df5.test, 
+            by = c("date" = "date", 
+                   "hour" = "hour")) %>% 
+  mutate(error = y - yhat)
+  
+str(df6.test_accuracy)
+summary(df6.test_accuracy$error)
+
+df6.test_accuracy %>% 
+  filter(date < "2019-04-15") %>%
+  ggplot(aes(x = ds.x, 
+             y = yhat)) + 
+  geom_ribbon(aes(x = ds.x, 
+                  ymin = yhat_lower,
+                  ymax = yhat_upper), 
+              fill = "grey80",
+              alpha = 0.5) + 
+  geom_line() + 
+  geom_point() + 
+  
+  geom_line(aes(x = ds.x, 
+                y = y), 
+            col = "skyblue")
+  
+  
 
