@@ -46,7 +46,7 @@ vw_ed_census <- dplyr::tbl(cnx, dbplyr::in_schema("DSSI.dbo",
 #' Prophet hangs with ten years of hourly data. Let's start with 3 years. 
 #' 
 # Parameters -----------
-start_date_id_param <- "20170101"
+start_date_id_param <- "20170101"  # todo: experiment with this
 site <- "RHS"
 
 #' # Data
@@ -295,8 +295,8 @@ df7.1_metrics_m1 %>%
             options = list(dom = 'Bfrtip', 
                            buttons = c('excel', "csv")))
 
-#' Note that CI coverage is quite poor - below 70%
-#'                            
+#' **Prophet's default is to return 80% prediction intervals.** 
+#' 
 
 
 #' ## Prophet model 2
@@ -416,7 +416,7 @@ df7.3_metrics_m3 %>%
 #' If we haven't overfitted, test set accuracy should be pretty close to
 #' cross-validated train set accuracy.
 
-
+# > Test set accuracy -------------
 # df6.test_accuracy <- 
 #   fcast %>% 
 #   select(ds, 
@@ -452,4 +452,9 @@ df7.3_metrics_m3 %>%
 #             col = "skyblue")
   
   
+#' # Analyzing residuals from model 
+#' 
+
+# Analyzing residuals --------
+
 
