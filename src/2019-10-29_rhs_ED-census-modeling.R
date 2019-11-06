@@ -35,9 +35,11 @@ vw_ed_census <- dplyr::tbl(cnx, dbplyr::in_schema("DSSI.dbo",
 
 #' # Todo: 
 #' 
-#' 1. check NAs in census table 
+#' 1. use DSSI.dbo.AISAKE_Hourly_Census
 #' 
-#' 2. Missing holidays? 
+#' 2. check NAs in census table 
+#' 
+#' 3. Missing holidays? 
 #' 
 #' 
 
